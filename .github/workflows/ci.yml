@@ -1,0 +1,39 @@
+name: QuizGenerator CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Check Python Syntax
+        run: |
+          python -m compileall backend
+
+      - name: Verify Project Structure
+        run: |
+          test -f backend/app.py
+          test -f backend/requirements.txt
+
+      - name: CI Completed
+        run: echo "✅ GitHub Actions completed successfully!"
