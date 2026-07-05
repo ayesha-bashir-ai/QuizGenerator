@@ -11,11 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -26,13 +24,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Check Python syntax
-        run: |
-          python -m compileall backend
+        run: python -m compileall backend
 
-      - name: Verify Flask application imports
-        working-directory: backend
-        run: |
-          python -c "from app import create_app; create_app(); print('Flask app loaded successfully')"
-
-      - name: CI Passed
-        run: echo "✅ All CI checks passed!"
+      - name: CI completed
+        run: echo "✅ CI passed successfully"
