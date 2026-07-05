@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizGenius AI — Generate Smart Quizzes Instantly</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ---------- HOME-ONLY ---------- */
+    .hero {
+      padding: 6rem 0 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(124,92,252,0.13) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero .label { margin-bottom: 1.2rem; }
+    .hero h1 span { color: var(--violet-soft); font-style: italic; }
+    .hero p {
+      color: var(--muted);
+      font-size: 1.15rem;
+      max-width: 540px;
+      margin: 1.2rem auto 2.2rem;
+    }
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem; }
+    .hero-btns .btn-lg { min-width: 180px; justify-content: center; }
+
+    /* supported files ticker */
+    .file-strip {
+      display: flex; justify-content: center;
+      gap: 0.75rem; flex-wrap: wrap;
+      margin: 2.5rem 0;
+    }
+    .file-pill {
+      padding: 0.3rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .file-pill span { font-size: 1rem; }
+
+    /* features grid */
+    .features { padding: 4rem 0; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
+    .feat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feat-card:hover { border-color: var(--violet); transform: translateY(-3px); }
+    .feat-icon {
+      font-size: 1.8rem; margin-bottom: 0.85rem;
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--violet-glow);
+      border-radius: var(--radius-sm);
+    }
+    .feat-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+    .feat-card p { color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+
+    /* stats band */
+    .stats { padding: 3.5rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .stats-row { display: flex; justify-content: space-around; gap: 2rem; flex-wrap: wrap; text-align: center; }
+    .stat-num { font-family: 'DM Serif Display', serif; font-size: 2.8rem; color: var(--violet-soft); }
+    .stat-lbl { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+    /* how it works */
+    .steps { padding: 4rem 0; }
+    .steps-row { display: flex; gap: 0; margin-top: 2.5rem; flex-wrap: wrap; }
+    .step {
+      flex: 1; min-width: 140px;
+      padding: 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -0.5rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--border);
+      font-size: 1.2rem;
+    }
+    .step-num {
+      width: 42px; height: 42px;
+      margin: 0 auto 0.85rem;
+      border-radius: 50%;
+      background: var(--violet-glow);
+      border: 1.5px solid var(--violet);
+      color: var(--violet-soft);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .step h4 { font-family: 'Inter', sans-serif; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .step p { color: var(--muted); font-size: 0.8rem; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot">
+    <a href="login.html">Login</a>
+    <a href="register.html" class="btn-nav">Sign Up</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero container">
+  <div class="label">✦ AI-Powered Quiz Generation</div>
+  <h1>Turn any content into a<br><span>smart quiz</span> in seconds</h1>
+  <!-- <p>Upload a PDF, Word doc, PowerPoint, or paste text — QuizGenius AI generates, grades, and tracks quizzes automatically.</p> -->
+  <div class="hero-btns">
+    <a href="upload.html" class="btn btn-primary btn-lg">📂 Upload & Generate</a>
+    <a href="register.html" class="btn btn-outline btn-lg">Get Started Free</a>
+  </div>
+  <!--
+  <div class="file-strip">
+    <div class="file-pill"><span>📄</span> PDF</div>
+    <div class="file-pill"><span>📝</span> DOCX</div>
+    <div class="file-pill"><span>📊</span> PPTX</div>
+    <div class="file-pill"><span>🗒️</span> TXT</div>
+    <div class="file-pill"><span>#️⃣</span> Markdown</div>
+    <div class="file-pill"><span>✍️</span> Paste Text</div>
+  </div>
+  -->
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="container stats-row">
+    <div><div class="stat-num">50+</div><div class="stat-lbl">Question Types</div></div>
+    <div><div class="stat-num">5</div><div class="stat-lbl">File Formats Supported</div></div>
+    <div><div class="stat-num">100%</div><div class="stat-lbl">Auto-Graded</div></div>
+    <div><div class="stat-num">∞</div><div class="stat-lbl">Quizzes You Can Create</div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="steps container">
+  <div class="label">How it works</div>
+  <h2 class="mt-1">From file to quiz in five steps</h2>
+  <div class="steps-row">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h4>Upload</h4>
+      <p>File or paste your notes</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h4>Configure</h4>
+      <p>Set difficulty, count & type</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h4>AI Generates</h4>
+      <p>GPT builds a structured quiz</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h4>Attempt</h4>
+      <p>Timer, flags, auto-save</p>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <h4>Results</h4>
+      <p>Score, grade & full review</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features container">
+  <div class="label">Features</div>
+  <h2 class="mt-1">Everything you need to learn faster</h2>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🤖</div>
+      <h3>AI-Generated Questions</h3>
+      <p>GPT creates MCQs, True/False, Fill-in-blank, and short-answer questions with explanations.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <h3>Adaptive Difficulty</h3>
+      <p>Quiz gets harder when you're on a streak, easier when you're struggling. Personalised challenge.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Analytics Dashboard</h3>
+      <p>Track scores over time, spot weak topics, and visualise progress with Chart.js graphs.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⏱️</div>
+      <h3>Timed Mode</h3>
+      <p>Practice under pressure with per-quiz countdowns from 5 to 30 minutes.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🃏</div>
+      <h3>Flashcard Generator</h3>
+      <p>Auto-create study flashcards from the same content, side by side with your quiz.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌐</div>
+      <h3>Multi-Language</h3>
+      <p>Generate quizzes in any language — study in your native tongue, not just English.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏆</div>
+      <h3>Leaderboard</h3>
+      <p>Compete with others. Rank by score and speed to stay motivated.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📥</div>
+      <h3>Export Reports</h3>
+      <p>Download your results as PDF or CSV. Share with teachers or keep for review.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="padding:4rem 0; text-align:center;">
+  <div class="container">
+    <div class="card" style="max-width:580px;margin:0 auto;background:var(--bg2);border-color:var(--violet);">
+      <div class="label mb-2">Start learning smarter</div>
+      <h2>Ready to quiz yourself?</h2>
+      <p class="text-muted mt-2 mb-3">Free to try. No credit card. Upload your first file and get a quiz in under 30 seconds.</p>
+      <a href="upload.html" class="btn btn-primary btn-lg">Generate My First Quiz →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © 2026 QuizGenius AI. All rights reserved.                    
+  <!-- <a href="https://neon.tech" target="_blank" style="color:var(--violet-soft)"></a> -->
+</footer>
+
+<div id="toast"></div>
+<script src="js/utils.js"></script>
+<script>renderNavUser();</script>
+</body>
+</html>
+<!-- Smart Quiz Generator
+Convert any content into interactive quizzes instantly -->

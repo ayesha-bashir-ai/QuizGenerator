@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizGenius AI — Login / Register</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .auth-box {
+      width: 100%; max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+    }
+    .auth-logo {
+      text-align: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      margin-bottom: 1.8rem;
+    }
+    .auth-logo span { color: var(--violet); }
+    .auth-tabs {
+      display: flex;
+      background: var(--bg2);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 1.8rem;
+    }
+    .auth-tab {
+      flex: 1; text-align: center;
+      padding: 0.5rem;
+      border-radius: calc(var(--radius-sm) - 2px);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--muted);
+      transition: background 0.2s, color 0.2s;
+      border: none; background: transparent;
+    }
+    .auth-tab.active {
+      background: var(--violet);
+      color: #fff;
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .divider {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      position: relative;
+      margin: 1.25rem 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%; width: 38%;
+      height: 1px; background: var(--border);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links"><a href="index.html">← Home</a></div>
+</nav>
+
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">Quiz<span>Genius</span> AI</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showTab('login')">Login</button>
+      <button class="auth-tab" onclick="showTab('register')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form active" id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="login-email" class="input" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-pass" class="input" placeholder="••••••••" />
+      </div>
+      <button class="btn btn-primary w-full mt-2" onclick="doLogin()">Login →</button>
+      <div class="divider">or</div>
+      <p class="text-center text-muted" style="font-size:0.82rem;">
+        No account? <a href="#" onclick="showTab('register')" style="color:var(--violet-soft);">Sign up free</a>
+      </p>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="auth-form" id="form-register">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" id="reg-username" class="input" placeholder="yourname" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="reg-email" class="input" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="reg-pass" class="input" placeholder="At least 6 characters" />
+      </div>
+      <button class="btn btn-primary w-full mt-2" onclick="doRegister()">Create Account →</button>
+      <div class="divider">or</div>
+      <p class="text-center text-muted" style="font-size:0.82rem;">
+        Have an account? <a href="#" onclick="showTab('login')" style="color:var(--violet-soft);">Login</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="js/utils.js"></script>
+<script>
+  // Switch tab on page load if #register in URL
+  if (location.hash === '#register') showTab('register');
+
+  function showTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((el, i) => {
+      el.classList.toggle('active', (i === 0) === (tab === 'login'));
+    });
+    document.getElementById('form-login').classList.toggle('active', tab === 'login');
+    document.getElementById('form-register').classList.toggle('active', tab === 'register');
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-pass').value;
+    if (!email || !password) return showToast('Fill in all fields', 'error');
+    try {
+      const data = await apiFetch('/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      setUser({ user_id: data.user_id, username: data.username });
+      showToast('Welcome back, ' + data.username + '!', 'success');
+      setTimeout(() => window.location.href = 'upload.html', 900);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  async function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-pass').value;
+    if (!username || !email || !password) return showToast('Fill in all fields', 'error');
+    if (password.length < 6) return showToast('Password must be at least 6 characters', 'error');
+    try {
+      await apiFetch('/register', {
+        method: 'POST',
+        body: JSON.stringify({ username, email, password }),
+      });
+      showToast('Account created! Logging you in…', 'success');
+      // Auto-login after register
+      const data = await apiFetch('/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      setUser({ user_id: data.user_id, username: data.username });
+      setTimeout(() => window.location.href = 'upload.html', 1000);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  // Allow Enter key to submit
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const active = document.querySelector('.auth-form.active').id;
+      if (active === 'form-login') doLogin();
+      else doRegister();
+    }
+  });
+</script>
+</body>
+</html>

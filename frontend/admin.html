@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuizGenius AI — Admin Panel</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .admin-page { padding:2rem 0 4rem; }
+
+    /* Sidebar + main layout */
+    .admin-layout { display:grid; grid-template-columns:220px 1fr; gap:1.5rem; align-items:start; }
+    .admin-sidebar {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--radius); padding:1.25rem; position:sticky; top:80px;
+    }
+    .admin-sidebar h4 {
+      font-size:.7rem; font-weight:700; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--muted); margin-bottom:1rem;
+    }
+    .admin-nav-link {
+      display:flex; align-items:center; gap:.6rem;
+      padding:.55rem .75rem; border-radius:var(--radius-sm);
+      font-size:.875rem; font-weight:500; color:var(--muted);
+      cursor:pointer; transition:background .15s,color .15s;
+      border:none; background:transparent; width:100%; text-align:left;
+    }
+    .admin-nav-link:hover, .admin-nav-link.active {
+      background:var(--violet-glow); color:var(--white);
+    }
+    .admin-nav-link .icon { font-size:1rem; }
+
+    /* Stat cards */
+    .admin-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+    .admin-stat { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.3rem; }
+    .admin-stat .val { font-family:'DM Serif Display',serif; font-size:2rem; }
+    .admin-stat .lbl { font-size:.75rem; color:var(--muted); margin-top:.2rem; }
+
+    /* Panels */
+    .admin-panel { display:none; }
+    .admin-panel.active { display:block; }
+
+    /* Table actions */
+    .tbl-wrap { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .danger-btn { color:var(--red); border-color:var(--red); }
+    .danger-btn:hover { background:rgba(240,82,82,.12); }
+
+    @media(max-width:768px) {
+      .admin-layout { grid-template-columns:1fr; }
+      .admin-sidebar { position:static; }
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot"></div>
+</nav>
+
+<div class="admin-page container">
+  <div style="margin-bottom:1.5rem">
+    <div class="label">Admin only</div>
+    <h2 class="mt-1">Admin Panel</h2>
+  </div>
+
+  <div class="admin-layout">
+    <!-- Sidebar nav -->
+    <div class="admin-sidebar">
+      <h4>Sections</h4>
+      <button class="admin-nav-link active" onclick="showPanel('overview')"><span class="icon">📊</span> Overview</button>
+      <button class="admin-nav-link" onclick="showPanel('users')"><span class="icon">👥</span> Users</button>
+      <button class="admin-nav-link" onclick="showPanel('quizzes')"><span class="icon">📝</span> Quizzes</button>
+      <button class="admin-nav-link" onclick="showPanel('activity')"><span class="icon">⚡</span> Recent Activity</button>
+    </div>
+
+    <!-- Main content -->
+    <div>
+
+      <!-- ── OVERVIEW ── -->
+      <div class="admin-panel active" id="panel-overview">
+        <div class="admin-stats" id="admin-stats">
+          <div class="admin-stat"><div class="val">—</div><div class="lbl">Total Users</div></div>
+          <div class="admin-stat"><div class="val">—</div><div class="lbl">Total Quizzes</div></div>
+          <div class="admin-stat"><div class="val">—</div><div class="lbl">Total Attempts</div></div>
+          <div class="admin-stat"><div class="val">—</div><div class="lbl">Avg Score</div></div>
+        </div>
+        <div class="card">
+          <h3 class="mb-3">Platform at a glance</h3>
+          <p class="text-muted" style="font-size:.875rem;line-height:1.75">
+            All platform data shown here is live from the Neon database. 
+            Switch to the <strong>Users</strong> or <strong>Quizzes</strong> 
+            tabs to manage records. Only admin accounts can access this page.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── USERS ── -->
+      <div class="admin-panel" id="panel-users">
+        <div class="flex justify-between items-center mb-3">
+          <h3>All Users</h3>
+          <input type="text" class="input" style="max-width:220px"
+            placeholder="Search username or email…" oninput="filterUsers(this.value)"/>
+        </div>
+        <div class="tbl-wrap" id="users-table">
+          <div style="padding:2rem;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>
+        </div>
+      </div>
+
+      <!-- ── QUIZZES ── -->
+      <div class="admin-panel" id="panel-quizzes">
+        <div class="flex justify-between items-center mb-3">
+          <h3>All Quizzes</h3>
+          <input type="text" class="input" style="max-width:220px"
+            placeholder="Search title…" oninput="filterQuizzes(this.value)"/>
+        </div>
+        <div class="tbl-wrap" id="quizzes-table">
+          <div style="padding:2rem;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>
+        </div>
+      </div>
+
+      <!-- ── ACTIVITY ── -->
+      <div class="admin-panel" id="panel-activity">
+        <h3 class="mb-3">Recent Attempts (last 10)</h3>
+        <div class="tbl-wrap" id="activity-table">
+          <div style="padding:2rem;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-backdrop" id="confirm-modal">
+  <div class="modal">
+    <h3 class="mb-2" id="confirm-title">Confirm Delete</h3>
+    <p class="text-muted mb-3" id="confirm-body"></p>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost w-full" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger w-full" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="js/utils.js"></script>
+<script>
+  renderNavUser();
+  requireAuth();
+
+  let allUsers = [], allQuizzes = [], statsData = null;
+
+  async function loadAll() {
+    try {
+      [statsData, allUsers, allQuizzes] = await Promise.all([
+        apiFetch('/admin/stats'),
+        apiFetch('/admin/users'),
+        apiFetch('/admin/quizzes'),
+      ]);
+      renderStats(statsData);
+      renderUsers(allUsers);
+      renderQuizzes(allQuizzes);
+      renderActivity(statsData.recent_attempts);
+    } catch(e) {
+      showToast(e.message, 'error');
+      if (e.message.includes('admin')) {
+        setTimeout(() => window.location.href = 'index.html', 1500);
+      }
+    }
+  }
+
+  /* ── Navigation ── */
+  function showPanel(name) {
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  /* ── Stats ── */
+  function renderStats(d) {
+    const cards = document.getElementById('admin-stats').querySelectorAll('.admin-stat');
+    const vals = [d.total_users, d.total_quizzes, d.total_attempts, d.avg_score + '%'];
+    vals.forEach((v,i) => cards[i].querySelector('.val').textContent = v);
+  }
+
+  /* ── Users ── */
+  function renderUsers(data) {
+    if (!data.length) {
+      document.getElementById('users-table').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">No users found.</div>';
+      return;
+    }
+    document.getElementById('users-table').innerHTML = `
+      <table>
+        <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Quizzes</th><th>Joined</th><th>Role</th><th></th></tr></thead>
+        <tbody>
+          ${data.map(u => `
+            <tr>
+              <td style="color:var(--muted)">#${u.id}</td>
+              <td><strong>${esc(u.username)}</strong></td>
+              <td style="color:var(--muted);font-size:.82rem">${esc(u.email)}</td>
+              <td>${u.quiz_count}</td>
+              <td style="color:var(--muted);font-size:.82rem">${formatDate(u.joined)}</td>
+              <td>${u.is_admin ? '<span class="badge badge-violet">Admin</span>' : '<span class="badge" style="color:var(--muted);border-color:var(--border)">User</span>'}</td>
+              <td style="display:flex;gap:.4rem">
+                ${!u.is_admin ? `<button class="btn btn-outline btn-sm" onclick="promoteUser(${u.id},'${esc(u.username)}')">Promote</button>` : ''}
+                <button class="btn btn-outline btn-sm danger-btn" onclick="deleteUser(${u.id},'${esc(u.username)}')">Delete</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function filterUsers(q) {
+    const f = allUsers.filter(u =>
+      u.username.toLowerCase().includes(q.toLowerCase()) ||
+      u.email.toLowerCase().includes(q.toLowerCase()));
+    renderUsers(f);
+  }
+
+  /* ── Quizzes ── */
+  function renderQuizzes(data) {
+    if (!data.length) {
+      document.getElementById('quizzes-table').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">No quizzes found.</div>';
+      return;
+    }
+    document.getElementById('quizzes-table').innerHTML = `
+      <table>
+        <thead><tr><th>ID</th><th>Title</th><th>Owner</th><th>Difficulty</th><th>Attempts</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+          ${data.map(q => `
+            <tr>
+              <td style="color:var(--muted)">#${q.id}</td>
+              <td><strong>${esc(q.title)}</strong></td>
+              <td style="color:var(--muted)">${esc(q.owner)}</td>
+              <td><span class="badge ${q.difficulty==='hard'?'badge-red':q.difficulty==='easy'?'badge-green':'badge-violet'}">${q.difficulty}</span></td>
+              <td>${q.attempts}</td>
+              <td style="color:var(--muted);font-size:.82rem">${formatDate(q.created)}</td>
+              <td><button class="btn btn-outline btn-sm danger-btn" onclick="deleteQuiz(${q.id},'${esc(q.title)}')">Delete</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function filterQuizzes(q) {
+    const f = allQuizzes.filter(qz => qz.title.toLowerCase().includes(q.toLowerCase()));
+    renderQuizzes(f);
+  }
+
+  /* ── Activity ── */
+  function renderActivity(data) {
+    if (!data || !data.length) {
+      document.getElementById('activity-table').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">No activity yet.</div>';
+      return;
+    }
+    document.getElementById('activity-table').innerHTML = `
+      <table>
+        <thead><tr><th>User</th><th>Quiz</th><th>Score</th><th>Date</th></tr></thead>
+        <tbody>
+          ${data.map(a => `
+            <tr>
+              <td><strong>${esc(a.username)}</strong></td>
+              <td style="color:var(--muted);font-size:.82rem">${esc(a.quiz_title)}</td>
+              <td><strong style="color:${a.score>=80?'var(--green)':a.score>=60?'var(--violet-soft)':'var(--red)'}">${a.score}%</strong></td>
+              <td style="color:var(--muted);font-size:.82rem">${formatDate(a.date)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  /* ── Actions ── */
+  let pendingAction = null;
+
+  function deleteUser(id, name) {
+    pendingAction = async () => {
+      await apiFetch('/admin/users/' + id, { method:'DELETE' });
+      allUsers = allUsers.filter(u => u.id !== id);
+      renderUsers(allUsers);
+      showToast('User ' + name + ' deleted', 'success');
+    };
+    showConfirm('Delete User', `Are you sure you want to permanently delete "${name}"? All their quizzes and attempts will be removed.`);
+  }
+
+  function deleteQuiz(id, title) {
+    pendingAction = async () => {
+      await apiFetch('/admin/quizzes/' + id, { method:'DELETE' });
+      allQuizzes = allQuizzes.filter(q => q.id !== id);
+      renderQuizzes(allQuizzes);
+      showToast('Quiz deleted', 'success');
+    };
+    showConfirm('Delete Quiz', `Are you sure you want to delete "${title}"?`);
+  }
+
+  async function promoteUser(id, name) {
+    try {
+      await apiFetch('/admin/promote/' + id, { method:'POST' });
+      allUsers = allUsers.map(u => u.id === id ? {...u, is_admin:true} : u);
+      renderUsers(allUsers);
+      showToast(name + ' promoted to admin', 'success');
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  function showConfirm(title, body) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-body').textContent  = body;
+    document.getElementById('confirm-modal').classList.add('show');
+    document.getElementById('confirm-ok').onclick = async () => {
+      closeConfirm();
+      try { await pendingAction(); } catch(e) { showToast(e.message,'error'); }
+    };
+  }
+
+  function closeConfirm() {
+    document.getElementById('confirm-modal').classList.remove('show');
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  loadAll();
+</script>
+</body>
+</html>

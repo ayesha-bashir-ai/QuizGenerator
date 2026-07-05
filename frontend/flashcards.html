@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuizGenius AI — Flashcards</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .flash-page { padding: 2.5rem 0 4rem; }
+    .page-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+
+    /* Card flip */
+    .flip-scene {
+      perspective: 1200px;
+      width: 100%; max-width: 640px;
+      height: 320px;
+      margin: 0 auto 2rem;
+      cursor: pointer;
+    }
+    .flip-card {
+      width:100%; height:100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(.4,0,.2,1);
+    }
+    .flip-card.flipped { transform: rotateY(180deg); }
+    .flip-face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden;
+      border-radius: var(--radius);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2.5rem;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .flip-front {
+      background: var(--card);
+    }
+    .flip-back {
+      background: linear-gradient(135deg, #1a1040, #0f1628);
+      border-color: var(--violet);
+      transform: rotateY(180deg);
+    }
+    .flip-label {
+      font-size: .68rem; font-weight:700; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--muted); margin-bottom:1rem;
+    }
+    .flip-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      line-height: 1.5;
+      color: var(--white);
+    }
+    .flip-hint {
+      position: absolute; bottom:1rem;
+      font-size:.72rem; color:var(--muted);
+    }
+
+    /* Progress dots */
+    .card-dots {
+      display: flex; justify-content:center; gap:.4rem; flex-wrap:wrap; margin-bottom:1.5rem;
+    }
+    .cdot {
+      width:10px; height:10px; border-radius:50%;
+      background:var(--border); transition:background .2s;
+    }
+    .cdot.seen    { background:var(--violet); }
+    .cdot.current { background:var(--teal); }
+
+    /* Controls */
+    .flash-controls {
+      display:flex; align-items:center; justify-content:center;
+      gap:1rem; flex-wrap:wrap;
+    }
+    .counter { font-size:.85rem; color:var(--muted); min-width:80px; text-align:center; }
+
+    /* Input area for generating */
+    .generate-section { max-width:640px; margin:0 auto 2rem; }
+    .gen-tabs { display:flex; gap:.5rem; margin-bottom:1rem; }
+    .gen-tab {
+      flex:1; padding:.5rem; text-align:center; border-radius:var(--radius-sm);
+      border:1.5px solid var(--border); font-size:.82rem; font-weight:600;
+      cursor:pointer; color:var(--muted); background:transparent; transition:all .2s;
+    }
+    .gen-tab.active { border-color:var(--violet); color:var(--violet-soft); background:var(--violet-glow); }
+
+    /* Summary panel */
+    .summary-panel { max-width:800px; margin:0 auto; }
+    .key-point {
+      padding:.65rem 1rem;
+      background:var(--bg2);
+      border-left:3px solid var(--violet);
+      border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom:.6rem;
+      font-size:.875rem; line-height:1.6;
+    }
+    .topic-chip {
+      display:inline-block;
+      padding:.25rem .7rem;
+      background:var(--violet-glow);
+      border:1px solid var(--violet);
+      border-radius:99px;
+      font-size:.75rem; font-weight:600;
+      color:var(--violet-soft); margin:.25rem .25rem 0 0;
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot"></div>
+</nav>
+
+<div class="flash-page container">
+  <div class="page-header">
+    <div>
+      <div class="label">Study tools</div>
+      <h2 class="mt-1">Flashcards & Summary</h2>
+    </div>
+    <div style="display:flex;gap:.75rem">
+      <a href="upload.html" class="btn btn-ghost btn-sm">← Back to Upload</a>
+    </div>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="generate-section">
+    <div class="gen-tabs">
+      <button class="gen-tab active" onclick="setMode('flash')">🃏 Flashcards</button>
+      <button class="gen-tab" onclick="setMode('summary')">📋 Summary & Key Points</button>
+      <button class="gen-tab" onclick="setMode('interview')">💼 Interview Questions</button>
+    </div>
+
+    <!-- Input -->
+    <div class="card" id="input-panel">
+      <div class="form-group">
+        <label class="form-label">Paste your content</label>
+        <textarea id="input-text" class="input" rows="6"
+          placeholder="Paste notes, article, or any text here…"
+          style="resize:vertical;line-height:1.7"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+        <div class="form-group" style="margin:0;flex:1;min-width:140px">
+          <label class="form-label">Count</label>
+          <select id="count-select" class="input select">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div class="form-group" id="lang-group" style="margin:0;flex:1;min-width:140px">
+          <label class="form-label">Interview — Language</label>
+          <select id="coding-lang" class="input select">
+            <option>Python</option><option>JavaScript</option>
+            <option>Java</option><option>C++</option><option>SQL</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="margin-top:1.2rem" onclick="generate()">
+          ⚡ Generate
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FLASHCARD VIEW ── -->
+  <div id="flash-view" class="hidden">
+    <div class="card-dots" id="card-dots"></div>
+
+    <div class="flip-scene" onclick="flip()">
+      <div class="flip-card" id="flip-card">
+        <div class="flip-face flip-front">
+          <div class="flip-label">Question / Term</div>
+          <div class="flip-text" id="front-text">—</div>
+          <div class="flip-hint">Click to reveal answer</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="flip-label">Answer</div>
+          <div class="flip-text" id="back-text">—</div>
+          <div class="flip-hint">Click to flip back</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flash-controls">
+      <button class="btn btn-ghost" onclick="navigate(-1)">← Prev</button>
+      <span class="counter" id="card-counter"></span>
+      <button class="btn btn-ghost" onclick="navigate(1)">Next →</button>
+    </div>
+    <div style="text-align:center;margin-top:1rem">
+      <button class="btn btn-outline btn-sm" onclick="shuffle()">🔀 Shuffle</button>
+      <button class="btn btn-ghost btn-sm" onclick="restart()">↺ Restart</button>
+    </div>
+    <p class="text-muted text-center mt-2" style="font-size:.78rem">
+      ← → arrow keys to navigate · Space to flip
+    </p>
+  </div>
+
+  <!-- ── SUMMARY VIEW ── -->
+  <div id="summary-view" class="hidden summary-panel">
+    <div class="card mb-3">
+      <h3 class="mb-2">📋 Summary</h3>
+      <p id="summary-text" style="color:var(--muted);line-height:1.75;font-size:.9rem"></p>
+    </div>
+    <div class="card mb-3">
+      <h3 class="mb-2">🎯 Key Points</h3>
+      <div id="key-points-list"></div>
+    </div>
+    <div class="card">
+      <h3 class="mb-2">🏷️ Topics</h3>
+      <div id="topics-chips"></div>
+    </div>
+  </div>
+
+  <!-- ── INTERVIEW VIEW ── -->
+  <div id="interview-view" class="hidden" style="max-width:800px;margin:0 auto">
+    <div id="interview-list"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-msg">Generating…</p>
+</div>
+
+<script src="js/utils.js"></script>
+<script>
+  renderNavUser();
+  requireAuth();
+
+  let mode = 'flash';
+  let cards = [];
+  let current = 0;
+  let seen = new Set();
+
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.gen-tab').forEach((t,i) => {
+      t.classList.toggle('active', ['flash','summary','interview'][i] === m);
+    });
+    document.getElementById('lang-group').style.display = m === 'interview' ? 'block' : 'none';
+    hideViews();
+  }
+
+  function hideViews() {
+    ['flash-view','summary-view','interview-view'].forEach(id =>
+      document.getElementById(id).classList.add('hidden'));
+  }
+
+  async function generate() {
+    const text  = document.getElementById('input-text').value.trim();
+    const count = parseInt(document.getElementById('count-select').value);
+    if (!text) return showToast('Please paste some content first', 'error');
+
+    if (mode === 'flash') {
+      showLoading('Generating flashcards…');
+      try {
+        const data = await apiFetch('/flashcards', {
+          method:'POST', body: JSON.stringify({ text, count })
+        });
+        hideLoading(); hideViews();
+        cards = data.flashcards;
+        current = 0; seen = new Set();
+        renderCards();
+        document.getElementById('flash-view').classList.remove('hidden');
+      } catch(e) { hideLoading(); showToast(e.message,'error'); }
+
+    } else if (mode === 'summary') {
+      showLoading('Summarising content…');
+      try {
+        const data = await apiFetch('/summary', { method:'POST', body: JSON.stringify({ text }) });
+        hideLoading(); hideViews();
+        document.getElementById('summary-text').textContent = data.summary || '';
+        const kp = document.getElementById('key-points-list');
+        kp.innerHTML = (data.key_points||[]).map(p=>`<div class="key-point">• ${esc(p)}</div>`).join('');
+        const tc = document.getElementById('topics-chips');
+        tc.innerHTML = (data.topics||[]).map(t=>`<span class="topic-chip">${esc(t)}</span>`).join('');
+        document.getElementById('summary-view').classList.remove('hidden');
+      } catch(e) { hideLoading(); showToast(e.message,'error'); }
+
+    } else if (mode === 'interview') {
+      showLoading('Generating interview questions…');
+      const lang = document.getElementById('coding-lang').value;
+      try {
+        const data = await apiFetch('/interview-questions', {
+          method:'POST', body: JSON.stringify({ text: text + '\nLanguage/context: ' + lang, count })
+        });
+        hideLoading(); hideViews();
+        const list = document.getElementById('interview-list');
+        const levelColor = { junior:'var(--green)', mid:'var(--violet-soft)', senior:'var(--yellow)' };
+        list.innerHTML = (data.questions||[]).map((q,i) => `
+          <div class="card mb-2">
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+              <span style="font-weight:700;color:var(--muted);font-size:.8rem">Q${i+1}</span>
+              <span class="badge" style="background:transparent;border-color:${levelColor[q.level]||'var(--border)'};color:${levelColor[q.level]||'var(--muted)'}">${q.level||'general'}</span>
+            </div>
+            <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:.85rem">${esc(q.question)}</div>
+            <details>
+              <summary style="cursor:pointer;font-size:.8rem;color:var(--violet-soft);font-weight:600">Show model answer ▾</summary>
+              <div style="margin-top:.75rem;padding:.75rem;background:var(--bg2);border-radius:var(--radius-sm);font-size:.85rem;color:var(--muted);line-height:1.7">
+                ${esc(q.sample_answer)}
+              </div>
+            </details>
+          </div>
+        `).join('');
+        document.getElementById('interview-view').classList.remove('hidden');
+      } catch(e) { hideLoading(); showToast(e.message,'error'); }
+    }
+  }
+
+  /* ── FLASHCARD CONTROLS ── */
+  function renderCards() {
+    seen.add(current);
+    const card = cards[current];
+    document.getElementById('front-text').textContent = card.front;
+    document.getElementById('back-text').textContent  = card.back;
+    document.getElementById('flip-card').classList.remove('flipped');
+    document.getElementById('card-counter').textContent = `${current+1} / ${cards.length}`;
+    buildDots();
+  }
+
+  function buildDots() {
+    const wrap = document.getElementById('card-dots');
+    wrap.innerHTML = cards.map((_,i) =>
+      `<div class="cdot ${i===current?'current':seen.has(i)?'seen':''}"></div>`
+    ).join('');
+  }
+
+  function flip() {
+    document.getElementById('flip-card').classList.toggle('flipped');
+  }
+
+  function navigate(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= cards.length) return;
+    current = next;
+    renderCards();
+  }
+
+  function shuffle() {
+    cards = cards.sort(() => Math.random() - .5);
+    current = 0; seen = new Set();
+    renderCards();
+  }
+
+  function restart() { current = 0; seen = new Set(); renderCards(); }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    if (!cards.length) return;
+    if (e.key === 'ArrowRight') navigate(1);
+    if (e.key === 'ArrowLeft')  navigate(-1);
+    if (e.key === ' ') { e.preventDefault(); flip(); }
+  });
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+cd D:\quiz-ai\backend
+
+cd backend
+.\venv\Scripts\Activate.ps1
+
+python app.py
+
+cd frontend
+
+
+python -m http.server 5500 --bind localhost
+
+http://localhost:5500

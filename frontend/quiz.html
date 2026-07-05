@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizGenius AI — Quiz</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .quiz-page { padding: 2rem 0 4rem; }
+
+    /* Quiz header */
+    .quiz-header {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+    .quiz-meta h2 { font-size: 1.3rem; }
+    .quiz-meta p { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+
+    /* Timer */
+    .timer-pill {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.1rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 99px; font-weight: 700; font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-pill.warning { border-color: var(--yellow); color: var(--yellow); }
+    .timer-pill.danger  { border-color: var(--red);    color: var(--red);    animation: pulse 0.8s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.55 } }
+
+    /* Question navigation dots */
+    .q-nav {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+    .q-dot {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: var(--bg2); color: var(--muted);
+      transition: all 0.15s;
+    }
+    .q-dot.answered  { background: var(--violet-glow); border-color: var(--violet); color: var(--violet-soft); }
+    .q-dot.flagged   { background: rgba(245,197,66,0.15); border-color: var(--yellow); color: var(--yellow); }
+    .q-dot.current   { background: var(--violet); border-color: var(--violet); color: #fff; }
+
+    /* Question card */
+    .q-card { position: relative; }
+    .q-number { font-size: 0.75rem; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 0.6rem; }
+    .q-text { font-size: 1.05rem; line-height: 1.65; margin-bottom: 1.5rem; font-family: 'DM Serif Display', serif; }
+
+    /* Options */
+    .options { display: flex; flex-direction: column; gap: 0.65rem; }
+    .option {
+      display: flex; align-items: center; gap: 0.85rem;
+      padding: 0.9rem 1.1rem;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s;
+    }
+    .option:hover { border-color: var(--violet-soft); background: var(--violet-glow); }
+    .option.selected { border-color: var(--violet); background: var(--violet-glow); }
+    .option-letter {
+      width: 28px; height: 28px; flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+      transition: background 0.18s, color 0.18s;
+    }
+    .option.selected .option-letter { background: var(--violet); color: #fff; }
+    .option-text { font-size: 0.9rem; line-height: 1.5; }
+
+    /* Fill in blank / short answer */
+    .text-answer { width: 100%; }
+
+    /* Flag button */
+    .flag-btn {
+      position: absolute; top: 0; right: 0;
+      background: transparent; border: none;
+      cursor: pointer; font-size: 1.2rem;
+      color: var(--muted); padding: 0.25rem;
+      transition: transform 0.15s;
+    }
+    .flag-btn.flagged { color: var(--yellow); }
+    .flag-btn:hover { transform: scale(1.2); }
+
+    /* Nav buttons */
+    .quiz-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 2rem; gap: 1rem; flex-wrap: wrap;
+    }
+    .quiz-footer-left, .quiz-footer-right { display: flex; gap: 0.75rem; }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links">
+    <div class="timer-pill" id="timer-pill">
+      ⏱ <span id="timer-display">—</span>
+    </div>
+  </div>
+</nav>
+
+<div class="quiz-page container">
+
+  <!-- Quiz header -->
+  <div class="quiz-header">
+    <div class="quiz-meta">
+      <h2 id="quiz-title">Loading quiz…</h2>
+      <p id="quiz-sub"></p>
+    </div>
+    <div>
+      <div class="progress-wrap" style="width:240px;">
+        <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+      <p class="text-muted mt-1" style="font-size:0.78rem;text-align:right" id="progress-label"></p>
+    </div>
+  </div>
+
+  <!-- Question navigation dots -->
+  <div class="q-nav" id="q-nav"></div>
+
+  <!-- Question card -->
+  <div class="card q-card" id="q-card">
+    <button class="flag-btn" id="flag-btn" title="Flag for review" onclick="toggleFlag()">🏳</button>
+    <div class="q-number" id="q-number"></div>
+    <div class="q-text"  id="q-text"></div>
+    <div class="options"  id="options-wrap"></div>
+  </div>
+
+  <!-- Footer nav -->
+  <div class="quiz-footer">
+    <div class="quiz-footer-left">
+      <button class="btn btn-ghost" id="btn-prev" onclick="navigate(-1)">← Prev</button>
+      <button class="btn btn-ghost" onclick="skipQuestion()">Skip</button>
+    </div>
+    <div class="quiz-footer-right">
+      <button class="btn btn-ghost" id="btn-next" onclick="navigate(1)">Next →</button>
+      <button class="btn btn-primary" id="btn-submit" onclick="confirmSubmit()">Submit Quiz</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Submit confirm modal -->
+<div class="modal-backdrop" id="submit-modal">
+  <div class="modal">
+    <h3 class="mb-2">Submit Quiz?</h3>
+    <p class="text-muted mb-3" id="submit-summary"></p>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost w-full" onclick="closeModal()">Review First</button>
+      <button class="btn btn-primary w-full" onclick="submitQuiz()">Submit →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-msg"></p>
+</div>
+
+<script src="js/utils.js"></script>
+<script>
+  requireAuth();
+
+  let state = loadQuizState();
+  let answers = {};
+  let flagged = new Set();
+  let currentIndex = 0;
+  let timerInterval = null;
+  let timeRemaining = 0;
+  let startTime = Date.now();
+
+  if (!state || !state.questions) {
+    showToast('No quiz found. Redirecting…', 'error');
+    setTimeout(() => window.location.href = 'upload.html', 1500);
+  } else {
+    initQuiz();
+  }
+
+  function initQuiz() {
+    if (state.shuffle_q) state.questions = shuffle(state.questions);
+
+    document.getElementById('quiz-title').textContent = state.title || 'Quiz';
+    document.getElementById('quiz-sub').textContent =
+      state.questions.length + ' questions' +
+      (state.time_limit_minutes > 0 ? ' · ' + state.time_limit_minutes + ' min limit' : '');
+
+    buildDots();
+    renderQuestion(0);
+
+    if (state.time_limit_minutes > 0) {
+      timeRemaining = state.time_limit_minutes * 60;
+      startTimer();
+    } else {
+      document.getElementById('timer-display').textContent = '∞';
+    }
+  }
+
+  /* ---------- DOTS ---------- */
+  function buildDots() {
+    const wrap = document.getElementById('q-nav');
+    wrap.innerHTML = '';
+    state.questions.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'q-dot' + (i === 0 ? ' current' : '');
+      d.textContent = i + 1;
+      d.onclick = () => renderQuestion(i);
+      wrap.appendChild(d);
+    });
+  }
+
+  function updateDots() {
+    document.querySelectorAll('.q-dot').forEach((d, i) => {
+      d.className = 'q-dot';
+      if (i === currentIndex) d.classList.add('current');
+      else if (flagged.has(i)) d.classList.add('flagged');
+      else {
+        const q = state.questions[i];
+        const key = q.qid !== undefined ? q.qid : i;
+        if (answers[key] !== undefined) d.classList.add('answered');
+      }
+    });
+  }
+
+  /* ---------- RENDER QUESTION ---------- */
+  function renderQuestion(idx) {
+    currentIndex = idx;
+    const q = state.questions[idx];
+    const total = state.questions.length;
+
+    document.getElementById('q-number').textContent = `Question ${idx + 1} / ${total}`;
+    document.getElementById('q-text').textContent = q.question;
+
+    // Progress
+    const answered = Object.keys(answers).length;
+    document.getElementById('progress-bar').style.width = Math.round((answered / total) * 100) + '%';
+    document.getElementById('progress-label').textContent = answered + ' of ' + total + ' answered';
+
+    // Flag
+    const flagBtn = document.getElementById('flag-btn');
+    flagBtn.textContent = flagged.has(idx) ? '🚩' : '🏳';
+    flagBtn.classList.toggle('flagged', flagged.has(idx));
+
+    // Options
+    const wrap = document.getElementById('options-wrap');
+    wrap.innerHTML = '';
+
+    const options = q.options || [];
+    let shuffled = state.shuffle_o ? shuffle([...options]) : options;
+
+    const questionKey = q.qid !== undefined ? q.qid : idx;
+    if (shuffled.length > 0) {
+      shuffled.forEach((opt, i) => {
+        const el = document.createElement('div');
+        el.className = 'option' + (answers[questionKey] === opt ? ' selected' : '');
+        el.innerHTML = `
+          <div class="option-letter">${'ABCD'[i]}</div>
+          <div class="option-text">${opt}</div>
+        `;
+        el.onclick = () => selectOption(questionKey, opt, el);
+        wrap.appendChild(el);
+      });
+    } else {
+      // text input for fill-in-blank / short answer
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'input text-answer';
+      inp.placeholder = 'Type your answer here…';
+      inp.value = answers[questionKey] || '';
+      inp.oninput = () => {
+        answers[questionKey] = inp.value;
+        autoSave();
+        updateProgress();
+      };
+      wrap.appendChild(inp);
+    }
+
+    // Nav buttons
+    document.getElementById('btn-prev').disabled = idx === 0;
+    document.getElementById('btn-submit').style.display = (idx === total - 1) ? 'inline-flex' : 'none';
+    document.getElementById('btn-next').style.display = (idx < total - 1) ? 'inline-flex' : 'none';
+
+    updateDots();
+  }
+
+  function selectOption(questionKey, value, el) {
+    answers[questionKey] = value;
+    document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    autoSave();
+    updateProgress();
+
+    // Auto-advance after 0.35s
+    if (currentIndex < state.questions.length - 1) {
+      setTimeout(() => navigate(1), 350);
+    }
+  }
+
+  function updateProgress() {
+    const total = state.questions.length;
+    const answered = Object.keys(answers).length;
+    document.getElementById('progress-bar').style.width = Math.round((answered / total) * 100) + '%';
+    document.getElementById('progress-label').textContent = answered + ' of ' + total + ' answered';
+  }
+
+  function navigate(dir) {
+    const next = currentIndex + dir;
+    if (next >= 0 && next < state.questions.length) renderQuestion(next);
+  }
+
+  function skipQuestion() {
+    if (currentIndex < state.questions.length - 1) navigate(1);
+  }
+
+  function toggleFlag() {
+    if (flagged.has(currentIndex)) flagged.delete(currentIndex);
+    else flagged.add(currentIndex);
+    renderQuestion(currentIndex);
+  }
+
+  /* ---------- TIMER ---------- */
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      timeRemaining--;
+      const m = Math.floor(timeRemaining / 60);
+      const s = String(timeRemaining % 60).padStart(2, '0');
+      document.getElementById('timer-display').textContent = `${m}:${s}`;
+
+      const pill = document.getElementById('timer-pill');
+      if (timeRemaining <= 60)       pill.className = 'timer-pill danger';
+      else if (timeRemaining <= 180) pill.className = 'timer-pill warning';
+
+      if (timeRemaining <= 0) {
+        clearInterval(timerInterval);
+        showToast('Time is up! Submitting…', 'error');
+        setTimeout(submitQuiz, 1200);
+      }
+    }, 1000);
+  }
+
+  /* ---------- AUTO SAVE ---------- */
+  function autoSave() {
+    saveQuizState({ ...state, _saved_answers: answers });
+  }
+
+  /* ---------- SUBMIT ---------- */
+  function confirmSubmit() {
+    const total = state.questions.length;
+    const answered = Object.keys(answers).length;
+    const skipped = total - answered;
+    document.getElementById('submit-summary').textContent =
+      `You answered ${answered} of ${total} questions. ${skipped > 0 ? skipped + ' will be marked as skipped.' : 'All answered!'}`;
+    document.getElementById('submit-modal').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('submit-modal').classList.remove('show');
+  }
+
+  async function submitQuiz() {
+    closeModal();
+    if (timerInterval) clearInterval(timerInterval);
+    showLoading('Checking your answers…');
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+
+    // Convert answers to index-keyed object for API
+    const indexedAnswers = {};
+    Object.keys(answers).forEach(k => { indexedAnswers[k] = answers[k]; });
+
+    try {
+      const result = await apiFetch('/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          quiz_id: state.quiz_id,
+          answers: indexedAnswers,
+          time_taken_seconds: timeTaken,
+          pass_score: state.pass_score,
+        }),
+      });
+      // Store result for result page
+      localStorage.setItem('qg_last_result', JSON.stringify(result));
+      clearQuizState();
+      hideLoading();
+      window.location.href = 'result.html';
+    } catch (e) {
+      hideLoading();
+      showToast(e.message, 'error');
+    }
+  }
+
+  /* ---------- UTILS ---------- */
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+</script>
+</body>
+</html>

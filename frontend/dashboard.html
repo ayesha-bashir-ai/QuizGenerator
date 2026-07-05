@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizGenius AI — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .dash-page { padding: 2.5rem 0 4rem; }
+    .dash-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+
+    /* Summary stat cards */
+    .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+    .stat-card .icon { font-size:1.5rem; margin-bottom:0.5rem; }
+    .stat-card .value { font-family:'DM Serif Display',serif; font-size:2rem; line-height:1; }
+    .stat-card .desc { color:var(--muted); font-size:0.8rem; margin-top:0.3rem; }
+
+    /* Charts row */
+    .charts-row { display:grid; grid-template-columns:2fr 1fr; gap:1.25rem; margin-bottom:1.5rem; }
+    .chart-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; }
+    .chart-card h3 { margin-bottom:1.2rem; font-size:1rem; }
+    .chart-wrap { position:relative; }
+
+    /* Topics table */
+    .topic-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.65rem 0; border-bottom:1px solid var(--border); }
+    .topic-row:last-child { border-bottom:none; }
+    .topic-name { font-size:0.875rem; flex:1; }
+    .topic-bar-wrap { flex:1; height:6px; background:var(--border); border-radius:99px; overflow:hidden; }
+    .topic-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--violet),var(--teal)); }
+    .topic-pct { font-size:0.8rem; font-weight:700; min-width:40px; text-align:right; }
+
+    @media(max-width:768px) { .charts-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot"></div>
+</nav>
+
+<div class="dash-page container">
+  <div class="dash-header">
+    <div>
+      <div class="label">Your progress</div>
+      <h2 class="mt-1">Dashboard</h2>
+    </div>
+    <a href="upload.html" class="btn btn-primary">+ Generate Quiz</a>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="stat-cards">
+    <div class="stat-card">
+      <div class="icon">📝</div>
+      <div class="value" id="total-quizzes">—</div>
+      <div class="desc">Total quizzes taken</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon">📈</div>
+      <div class="value text-violet" id="avg-score">—</div>
+      <div class="desc">Average score</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon">🏆</div>
+      <div class="value text-green" id="best-score">—</div>
+      <div class="desc">Personal best</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon">⏱</div>
+      <div class="value text-yellow" id="total-time">—</div>
+      <div class="desc">Total time spent</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon">✅</div>
+      <div class="value text-green" id="pass-rate">—</div>
+      <div class="desc">Pass rate</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Score over time</h3>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="line-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Correct vs Wrong vs Skipped</h3>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="pie-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bar chart -->
+  <div class="chart-card" style="margin-bottom:1.5rem">
+    <h3>Score per quiz (last 10)</h3>
+    <div class="chart-wrap" style="height:200px">
+      <canvas id="bar-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Topics -->
+  <div class="chart-card">
+    <h3>Topic performance (correct rate)</h3>
+    <div id="topics-list">
+      <p class="text-muted" style="font-size:0.85rem">No topic data yet.</p>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+<script src="js/utils.js"></script>
+<script>
+  renderNavUser();
+  requireAuth();
+
+  const CHART_DEFAULTS = {
+    color: '#8892b0',
+    font: { family: 'Inter', size: 12 },
+  };
+  Chart.defaults.color = CHART_DEFAULTS.color;
+  Chart.defaults.font  = CHART_DEFAULTS.font;
+
+  async function loadDashboard() {
+    try {
+      const attempts = await apiFetch('/history');
+      if (!attempts.length) {
+        showToast('No quiz data yet. Take a quiz first!', '');
+        return;
+      }
+      populateDashboard(attempts);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  function populateDashboard(attempts) {
+    const total = attempts.length;
+    const scores = attempts.map(a => Math.round(a.score));
+    const avg = Math.round(scores.reduce((s, x) => s + x, 0) / total);
+    const best = Math.max(...scores);
+    const totalSec = attempts.reduce((s, a) => s + (a.time_taken_seconds || 0), 0);
+    const passed = attempts.filter(a => a.score >= 60).length;
+
+    document.getElementById('total-quizzes').textContent = total;
+    document.getElementById('avg-score').textContent     = avg + '%';
+    document.getElementById('best-score').textContent    = best + '%';
+    document.getElementById('total-time').textContent    = Math.round(totalSec / 60) + 'm';
+    document.getElementById('pass-rate').textContent     = Math.round((passed / total) * 100) + '%';
+
+    // --- Line chart: score over time ---
+    const labels  = attempts.map(a => formatDate(a.attempted_at));
+    const lineCtx = document.getElementById('line-chart').getContext('2d');
+    new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Score %',
+          data: scores,
+          borderColor: '#7c5cfc',
+          backgroundColor: 'rgba(124,92,252,0.08)',
+          tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: '#7c5cfc',
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 100, grid: { color: '#252a45' }, ticks: { callback: v => v + '%' } },
+                  x: { grid: { color: '#252a45' } } } },
+    });
+
+    // --- Pie chart: correct/wrong/skipped ---
+    const totalC = attempts.reduce((s, a) => s + a.correct, 0);
+    const totalW = attempts.reduce((s, a) => s + a.wrong, 0);
+    const totalS = attempts.reduce((s, a) => s + a.skipped, 0);
+    const pieCtx = document.getElementById('pie-chart').getContext('2d');
+    new Chart(pieCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Correct', 'Wrong', 'Skipped'],
+        datasets: [{ data: [totalC, totalW, totalS],
+          backgroundColor: ['#22c55e', '#f05252', '#f5c542'], borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%',
+        plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 10 } } } },
+    });
+
+    // --- Bar chart: last 10 quiz scores ---
+    const last10 = attempts.slice(0, 10).reverse();
+    const barCtx = document.getElementById('bar-chart').getContext('2d');
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: last10.map(a => a.quiz_title.length > 18 ? a.quiz_title.slice(0, 18) + '…' : a.quiz_title),
+        datasets: [{
+          label: 'Score %',
+          data: last10.map(a => Math.round(a.score)),
+          backgroundColor: last10.map(a => a.score >= 80 ? '#22c55e' : a.score >= 60 ? '#7c5cfc' : '#f05252'),
+          borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 100, grid: { color: '#252a45' }, ticks: { callback: v => v + '%' } },
+                  x: { grid: { display: false } } } },
+    });
+
+    // --- Topics ---
+    // Build topic accuracy map from last result's breakdown in localStorage
+    // (In a full app this would come from a /dashboard endpoint that aggregates per topic)
+    const lastResult = JSON.parse(localStorage.getItem('qg_last_result') || 'null');
+    if (lastResult && lastResult.breakdown) {
+      const topicMap = {};
+      lastResult.breakdown.forEach(q => {
+        const t = q.topic || 'General';
+        if (!topicMap[t]) topicMap[t] = { correct: 0, total: 0 };
+        topicMap[t].total++;
+        if (q.is_correct) topicMap[t].correct++;
+      });
+      const topicList = document.getElementById('topics-list');
+      topicList.innerHTML = '';
+      Object.entries(topicMap).sort((a,b) => b[1].correct/b[1].total - a[1].correct/a[1].total)
+        .forEach(([topic, data]) => {
+          const pct = Math.round((data.correct / data.total) * 100);
+          const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--violet)' : 'var(--red)';
+          topicList.innerHTML += `
+            <div class="topic-row">
+              <div class="topic-name">${escHtml(topic)}</div>
+              <div class="topic-bar-wrap">
+                <div class="topic-bar-fill" style="width:${pct}%;background:${color}"></div>
+              </div>
+              <div class="topic-pct" style="color:${color}">${pct}%</div>
+            </div>`;
+        });
+    }
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

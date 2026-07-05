@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: quizgenius-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # set manually in Render dashboard
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates a random secret
+      - key: MAX_UPLOAD_MB
+        value: "10"
+    healthCheckPath: /api/health

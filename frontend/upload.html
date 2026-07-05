@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizGenius AI — Upload & Configure</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .page { padding: 2.5rem 0 4rem; }
+    .page-header { margin-bottom: 2.5rem; }
+    .upload-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.75rem; align-items: start; }
+
+    /* Source toggle */
+    .source-tabs {
+      display: flex;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 1.5rem;
+      gap: 4px;
+    }
+    .source-tab {
+      flex: 1; text-align: center; padding: 0.55rem;
+      border-radius: calc(var(--radius-sm) - 2px);
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; color: var(--muted);
+      border: none; background: transparent;
+      transition: background 0.2s, color 0.2s;
+    }
+    .source-tab.active { background: var(--violet); color: #fff; }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--bg2);
+    }
+    .dropzone.drag-over { border-color: var(--violet); background: var(--violet-glow); }
+    .dropzone .dz-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .dropzone p { color: var(--muted); font-size: 0.875rem; margin-top: 0.5rem; }
+    .dropzone strong { color: var(--white); }
+    #file-name {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--violet-glow);
+      border: 1px solid var(--violet);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: var(--violet-soft);
+    }
+
+    /* Settings grid */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* Question type chips */
+    .qtype-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .qtype-chip {
+      padding: 0.35rem 0.85rem;
+      border: 1.5px solid var(--border);
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+      background: transparent;
+    }
+    .qtype-chip.selected {
+      border-color: var(--violet);
+      color: var(--violet-soft);
+      background: var(--violet-glow);
+    }
+
+    /* AI Extras */
+    .extras-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.75rem; }
+    .extra-toggle {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.6rem 0.85rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: var(--muted);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .extra-toggle input { accent-color: var(--violet); }
+    .extra-toggle:has(input:checked) { border-color: var(--violet); color: var(--white); }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .upload-layout { grid-template-columns: 1fr; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .extras-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot"></div>
+</nav>
+
+<div class="page container">
+  <div class="page-header">
+    <div class="label">Step 1 of 2</div>
+    <h2 class="mt-1">Upload content & configure quiz</h2>
+    <p class="text-muted mt-1">Drop a file or paste your notes, then set how you want the quiz generated.</p>
+  </div>
+
+  <div class="upload-layout">
+    <!-- LEFT: Content input -->
+    <div>
+      <div class="source-tabs">
+        <button class="source-tab active" onclick="switchSource('file')">📂 Upload File</button>
+        <button class="source-tab" onclick="switchSource('text')">✍️ Paste Text</button>
+      </div>
+
+      <!-- File upload -->
+      <div id="source-file">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <div class="dz-icon">📄</div>
+          <strong>Click to upload or drag & drop</strong>
+          <p>PDF, DOCX, PPTX, TXT, Markdown — max 10 MB</p>
+          <input type="file" id="file-input" accept=".pdf,.docx,.pptx,.txt,.md" hidden />
+        </div>
+        <div id="file-name" class="hidden"></div>
+      </div>
+
+      <!-- Paste text -->
+      <div id="source-text" class="hidden">
+        <div class="form-group" style="margin:0">
+          <textarea id="paste-text" class="input" rows="11"
+            placeholder="Paste your notes, article, lecture text, or any content here…"
+            style="resize:vertical;line-height:1.7"></textarea>
+        </div>
+        <p class="text-muted mt-1" style="font-size:0.8rem;" id="char-count">0 characters</p>
+      </div>
+
+      <!-- Quiz title -->
+      <div class="form-group mt-3">
+        <label class="form-label">Quiz Title</label>
+        <input type="text" id="quiz-title" class="input" placeholder="e.g. Biology Chapter 5 Quiz" />
+      </div>
+    </div>
+
+    <!-- RIGHT: Settings -->
+    <div>
+      <div class="card">
+        <h3 class="mb-3">Quiz Settings</h3>
+
+        <!-- Question type -->
+        <div class="form-group">
+          <label class="form-label">Question Type</label>
+          <div class="qtype-chips">
+            <button class="qtype-chip selected" data-val="multiple-choice">MCQ</button>
+            <button class="qtype-chip" data-val="true-false">True / False</button>
+            <button class="qtype-chip" data-val="fill-in-blank">Fill in Blank</button>
+            <button class="qtype-chip" data-val="short-answer">Short Answer</button>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Difficulty -->
+          <div class="form-group">
+            <label class="form-label">Difficulty</label>
+            <select id="difficulty" class="input select">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+              <option value="adaptive">Adaptive ⚡</option>
+            </select>
+          </div>
+
+          <!-- Number of questions -->
+          <div class="form-group">
+            <label class="form-label">Questions</label>
+            <select id="num-questions" class="input select">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="30">30</option>
+            </select>
+          </div>
+
+          <!-- Time limit -->
+          <div class="form-group">
+            <label class="form-label">Time Limit</label>
+            <select id="time-limit" class="input select">
+              <option value="0">No limit</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15" selected>15 minutes</option>
+              <option value="30">30 minutes</option>
+            </select>
+          </div>
+
+          <!-- Passing score -->
+          <div class="form-group">
+            <label class="form-label">Passing Score</label>
+            <select id="pass-score" class="input select">
+              <option value="50">50%</option>
+              <option value="60" selected>60%</option>
+              <option value="70">70%</option>
+              <option value="80">80%</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <div class="form-group">
+          <label class="form-label">Options</label>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;">
+            <label class="extra-toggle"><input type="checkbox" id="shuffle-q" checked> Shuffle questions</label>
+            <label class="extra-toggle"><input type="checkbox" id="shuffle-o" checked> Shuffle options</label>
+            <label class="extra-toggle"><input type="checkbox" id="neg-mark"> Negative marking (−0.25)</label>
+          </div>
+        </div>
+
+        <!-- AI Extras -->
+        <div class="form-group">
+          <label class="form-label">AI Extras (optional)</label>
+          <div class="extras-grid">
+            <label class="extra-toggle"><input type="checkbox" id="extra-flash"> 🃏 Flashcards</label>
+            <label class="extra-toggle"><input type="checkbox" id="extra-summary"> 📋 Summary</label>
+            <label class="extra-toggle"><input type="checkbox" id="extra-interview"> 💼 Interview Qs</label>
+            <label class="extra-toggle"><input type="checkbox" id="extra-hints"> 💡 Hints</label>
+          </div>
+        </div>
+
+        <!-- Language -->
+        <div class="form-group">
+          <label class="form-label">Language</label>
+          <select id="language" class="input select">
+            <option value="English">English</option>
+            <option value="Urdu">Urdu</option>
+            <option value="Arabic">Arabic</option>
+            <option value="French">French</option>
+            <option value="Spanish">Spanish</option>
+            <option value="German">German</option>
+            <option value="Chinese">Chinese</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary w-full btn-lg" onclick="generateQuiz()">
+          ⚡ Generate Quiz
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-msg">Generating your quiz…</p>
+</div>
+
+<script src="js/utils.js"></script>
+<script>
+  renderNavUser();
+  requireAuth();
+
+  let extractedText = "";
+  let selectedFile = null;
+  let questionType = "multiple-choice";
+
+  /* Source toggle */
+  function switchSource(mode) {
+    document.querySelectorAll('.source-tab').forEach((el, i) =>
+      el.classList.toggle('active', (mode === 'file') === (i === 0)));
+    document.getElementById('source-file').classList.toggle('hidden', mode !== 'file');
+    document.getElementById('source-text').classList.toggle('hidden', mode !== 'text');
+  }
+
+  /* Question type chips */
+  document.querySelectorAll('.qtype-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.qtype-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      questionType = chip.dataset.val;
+    });
+  });
+
+  /* Char count */
+  document.getElementById('paste-text').addEventListener('input', function () {
+    document.getElementById('char-count').textContent = this.value.length.toLocaleString() + ' characters';
+    extractedText = this.value;
+  });
+
+  /* File input */
+  document.getElementById('file-input').addEventListener('change', function () {
+    if (this.files[0]) handleFile(this.files[0]);
+  });
+
+  /* Drag and drop */
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    const allowed = ['.pdf', '.docx', '.pptx', '.txt', '.md'];
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!allowed.includes(ext)) return showToast('Unsupported file type', 'error');
+    if (file.size > 10 * 1024 * 1024) return showToast('File is too large (max 10 MB)', 'error');
+    selectedFile = file;
+    const fn = document.getElementById('file-name');
+    fn.textContent = '✓ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+    fn.classList.remove('hidden');
+  }
+
+  async function generateQuiz() {
+    const title = document.getElementById('quiz-title').value.trim() || 'Untitled Quiz';
+    const difficulty = document.getElementById('difficulty').value;
+    const numQuestions = parseInt(document.getElementById('num-questions').value);
+    const timeLimit = parseInt(document.getElementById('time-limit').value);
+    const passScore = parseInt(document.getElementById('pass-score').value);
+    const shuffleQ = document.getElementById('shuffle-q').checked;
+    const shuffleO = document.getElementById('shuffle-o').checked;
+
+    showLoading('Uploading and extracting text…');
+
+    let text = extractedText;
+    let sourceFilename = null;
+
+    // Upload file first if file mode is active
+    const isFileMode = !document.getElementById('source-file').classList.contains('hidden');
+    if (isFileMode) {
+      if (!selectedFile) { hideLoading(); return showToast('Please select a file first', 'error'); }
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      try {
+        const res = await fetch(API + '/upload', { method: 'POST', body: formData, credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        text = data.text;
+        sourceFilename = data.source_filename;
+      } catch (e) {
+        hideLoading();
+        return showToast(e.message, 'error');
+      }
+    } else {
+      if (!text.trim()) { hideLoading(); return showToast('Please paste some text first', 'error'); }
+    }
+
+    showLoading('AI is generating your quiz… ✨');
+
+    try {
+      const data = await apiFetch('/generate-quiz', {
+        method: 'POST',
+        body: JSON.stringify({
+          text, title, num_questions: numQuestions,
+          difficulty, question_type: questionType,
+          source_filename: sourceFilename,
+        }),
+      });
+
+      // Save quiz + settings to localStorage before navigating
+      saveQuizState({
+        quiz_id: data.quiz_id,
+        title: data.title,
+        questions: data.questions,
+        time_limit_minutes: timeLimit,
+        pass_score: passScore,
+        shuffle_q: shuffleQ,
+        shuffle_o: shuffleO,
+      });
+
+      hideLoading();
+      window.location.href = 'quiz.html';
+    } catch (e) {
+      hideLoading();
+      showToast(e.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>

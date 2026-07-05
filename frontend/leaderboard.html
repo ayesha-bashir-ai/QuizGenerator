@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuizGenius AI — Leaderboard</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .lb-page { padding:2.5rem 0 4rem; }
+    .page-header { margin-bottom:2rem; }
+    .podium {
+      display:flex; align-items:flex-end; justify-content:center;
+      gap:1rem; margin:2rem 0 2.5rem; flex-wrap:wrap;
+    }
+    .podium-slot { text-align:center; }
+    .podium-block {
+      border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+      display:flex; align-items:center; justify-content:center;
+      font-family:'DM Serif Display',serif; font-size:1.5rem;
+    }
+    .p1 .podium-block { width:110px; height:90px; background:linear-gradient(180deg,#f5c542,#b8860b); color:#000; }
+    .p2 .podium-block { width:90px;  height:65px; background:linear-gradient(180deg,#9ca3af,#6b7280); color:#fff; }
+    .p3 .podium-block { width:90px;  height:50px; background:linear-gradient(180deg,#cd7f32,#8b4513); color:#fff; }
+    .podium-name { font-size:.8rem; font-weight:700; margin-top:.5rem; color:var(--white); }
+    .podium-score { font-size:.75rem; color:var(--muted); }
+    .rank-1 { color:var(--yellow); }
+    .rank-2 { color:#9ca3af; }
+    .rank-3 { color:#cd7f32; }
+    .lb-table-wrap {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden;
+    }
+    .my-row td { background:var(--violet-glow); }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot"></div>
+</nav>
+
+<div class="lb-page container">
+  <div class="page-header text-center">
+    <div class="label">Global ranking</div>
+    <h2 class="mt-1">🏆 Leaderboard</h2>
+    <p class="text-muted mt-1">Top 20 highest scores across all quizzes</p>
+  </div>
+
+  <!-- Podium for top 3 -->
+  <div class="podium" id="podium"></div>
+
+  <!-- Full table -->
+  <div class="lb-table-wrap" id="lb-table">
+    <div style="padding:2rem;text-align:center">
+      <div class="spinner" style="margin:0 auto"></div>
+      <p class="mt-2 text-muted">Loading leaderboard…</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="js/utils.js"></script>
+<script>
+  renderNavUser();
+  requireAuth();
+
+  const me = getUser();
+
+  async function load() {
+    try {
+      const rows = await apiFetch('/leaderboard');
+      renderPodium(rows.slice(0,3));
+      renderTable(rows);
+    } catch(e) {
+      document.getElementById('lb-table').innerHTML =
+        `<div style="padding:2rem;text-align:center;color:var(--muted)">${e.message}</div>`;
+    }
+  }
+
+  function renderPodium(top) {
+    const order = [top[1], top[0], top[2]].filter(Boolean); // 2nd, 1st, 3rd visual order
+    const classes = top[1] ? ['p2','p1','p3'] : ['p1'];
+    const wrap = document.getElementById('podium');
+    wrap.innerHTML = order.map((r,i) => `
+      <div class="podium-slot ${classes[i]}">
+        <div class="podium-block">${['🥈','🥇','🥉'][i]}</div>
+        <div class="podium-name">${esc(r.username)}</div>
+        <div class="podium-score">${r.score}%</div>
+      </div>
+    `).join('');
+  }
+
+  function renderTable(rows) {
+    if (!rows.length) {
+      document.getElementById('lb-table').innerHTML =
+        '<div style="padding:2rem;text-align:center;color:var(--muted)">No attempts yet. Be the first!</div>';
+      return;
+    }
+    const rankIcon = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':r;
+    document.getElementById('lb-table').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Rank</th><th>Player</th><th>Quiz</th>
+          <th>Score</th><th>Time</th><th>Date</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr class="${me && r.username === me.username ? 'my-row' : ''}">
+              <td><strong class="rank-${r.rank}">${rankIcon(r.rank)}</strong></td>
+              <td>
+                <strong>${esc(r.username)}</strong>
+                ${me && r.username === me.username ? '<span class="badge badge-violet" style="margin-left:.4rem">You</span>' : ''}
+              </td>
+              <td style="color:var(--muted);font-size:.82rem">${esc(r.quiz_title)}</td>
+              <td><strong style="color:${r.score>=80?'var(--green)':r.score>=60?'var(--violet-soft)':'var(--red)'}">${r.score}%</strong></td>
+              <td style="color:var(--muted)">${formatTime(r.time_seconds)}</td>
+              <td style="color:var(--muted)">${formatDate(r.date)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  load();
+</script>
+</body>
+</html>

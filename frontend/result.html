@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizGenius AI — Results</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .result-page { padding: 2.5rem 0 4rem; }
+
+    /* Score hero */
+    .score-hero {
+      text-align: center;
+      padding: 3rem 2rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .score-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, var(--violet-glow) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .score-circle {
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      border: 6px solid var(--violet);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 0 40px var(--violet-glow);
+      background: var(--bg);
+    }
+    .score-pct {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.5rem; line-height: 1;
+    }
+    .score-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+    .grade-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 1.2rem;
+      border-radius: 99px;
+      font-size: 1rem; font-weight: 700;
+      margin: 0.75rem 0;
+    }
+    .pass-badge  { background: rgba(34,197,94,0.15); border: 1.5px solid var(--green);  color: var(--green); }
+    .fail-badge  { background: rgba(240,82,82,0.12);  border: 1.5px solid var(--red);   color: var(--red);  }
+
+    /* Stat row */
+    .stat-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem; }
+    .stat-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.9rem 1.5rem;
+      text-align: center; min-width: 110px;
+    }
+    .stat-box .val { font-size: 1.6rem; font-family: 'DM Serif Display', serif; }
+    .stat-box .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+
+    /* Stars */
+    .stars { font-size: 1.4rem; letter-spacing: 2px; margin: 0.5rem 0; }
+
+    /* Buttons */
+    .result-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem; }
+
+    /* Breakdown */
+    .breakdown { margin-top: 2rem; }
+    .breakdown h2 { margin-bottom: 1.25rem; }
+    .q-review {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .q-review-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .q-review-text { font-family: 'DM Serif Display', serif; font-size: 0.98rem; flex: 1; }
+    .q-result-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .answer-row {
+      display: flex; gap: 0.5rem; align-items: baseline;
+      font-size: 0.82rem; margin-bottom: 0.3rem;
+    }
+    .answer-row .tag {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted); min-width: 90px;
+    }
+    .explanation {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      background: var(--bg2);
+      border-left: 3px solid var(--violet);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 0.83rem; color: var(--muted);
+      line-height: 1.6;
+    }
+    .explanation strong { color: var(--violet-soft); }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Quiz<span>Genius</span> AI</a>
+  <div class="nav-links" id="nav-user-slot"></div>
+</nav>
+
+<div class="result-page container">
+
+  <!-- SCORE HERO -->
+  <div class="score-hero">
+    <div class="score-circle">
+      <div class="score-pct" id="score-pct">—</div>
+      <div class="score-label">Score</div>
+    </div>
+
+    <h2 id="quiz-title-display">Quiz Results</h2>
+
+    <div class="stars" id="stars"></div>
+
+    <div id="grade-badge" class="grade-badge">—</div>
+    <div id="pass-fail" style="font-size:0.85rem;color:var(--muted)"></div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="val text-green"  id="correct-count">—</div>
+        <div class="lbl">Correct</div>
+      </div>
+      <div class="stat-box">
+        <div class="val text-red"    id="wrong-count">—</div>
+        <div class="lbl">Wrong</div>
+      </div>
+      <div class="stat-box">
+        <div class="val text-yellow" id="skipped-count">—</div>
+        <div class="lbl">Skipped</div>
+      </div>
+      <div class="stat-box">
+        <div class="val text-violet" id="time-taken">—</div>
+        <div class="lbl">Time Taken</div>
+      </div>
+    </div>
+
+    <div class="result-btns">
+      <button class="btn btn-outline" onclick="window.location.href='history.html'">📋 View History</button>
+      <button class="btn btn-ghost"   onclick="window.location.href='upload.html'">🔁 New Quiz</button>
+      <button class="btn btn-primary" onclick="window.print()">📥 Download PDF</button>
+    </div>
+  </div>
+
+  <!-- BREAKDOWN -->
+  <div class="breakdown" id="breakdown-section">
+    <h2>Question Review</h2>
+    <div id="breakdown-list"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+<script src="js/utils.js"></script>
+<script>
+  renderNavUser();
+  requireAuth();
+
+  const result = JSON.parse(localStorage.getItem('qg_last_result') || 'null');
+  if (!result) {
+    showToast('No results found. Redirecting…', 'error');
+    setTimeout(() => window.location.href = 'history.html', 1500);
+  } else {
+    renderResult(result);
+  }
+
+  function renderResult(r) {
+    const pct = r.score_percentage;
+
+    // Score circle
+    document.getElementById('score-pct').textContent = pct + '%';
+    document.getElementById('quiz-title-display').textContent = r.quiz_title || 'Quiz Results';
+
+    // Stars (0-5 based on %)
+    const starCount = pct >= 90 ? 5 : pct >= 75 ? 4 : pct >= 60 ? 3 : pct >= 45 ? 2 : 1;
+    document.getElementById('stars').textContent = '⭐'.repeat(starCount) + '☆'.repeat(5 - starCount);
+
+    // Grade badge
+    const badge = document.getElementById('grade-badge');
+    badge.textContent = 'Grade ' + r.grade;
+    badge.classList.add('grade-' + r.grade);
+    badge.classList.add(r.passed ? 'pass-badge' : 'fail-badge');
+
+    document.getElementById('pass-fail').textContent = r.passed
+      ? '✅ You passed this quiz!'
+      : '❌ Below passing score — keep practising';
+
+    // Stats
+    document.getElementById('correct-count').textContent = r.correct_count;
+    document.getElementById('wrong-count').textContent   = r.wrong_count;
+    document.getElementById('skipped-count').textContent = r.skipped_count;
+    document.getElementById('time-taken').textContent    = formatTime(r.time_taken_seconds || 0);
+
+    // Breakdown
+    const list = document.getElementById('breakdown-list');
+    list.innerHTML = '';
+    (r.breakdown || []).forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'q-review';
+      const icon = item.is_correct ? '✅' : (item.your_answer ? '❌' : '⏭');
+
+      card.innerHTML = `
+        <div class="q-review-header">
+          <div class="q-review-text">${i + 1}. ${escHtml(item.question)}</div>
+          <div class="q-result-icon">${icon}</div>
+        </div>
+
+        ${item.your_answer ? `
+        <div class="answer-row">
+          <span class="tag">Your answer</span>
+          <span class="${item.is_correct ? 'text-green' : 'text-red'}">${escHtml(item.your_answer)}</span>
+        </div>` : `
+        <div class="answer-row">
+          <span class="tag">Your answer</span>
+          <span class="text-yellow">Skipped</span>
+        </div>`}
+
+        ${!item.is_correct ? `
+        <div class="answer-row">
+          <span class="tag">Correct answer</span>
+          <span class="text-green">${escHtml(item.correct_answer)}</span>
+        </div>` : ''}
+
+        ${item.explanation ? `
+        <div class="explanation">
+          <strong>💡 Explanation:</strong> ${escHtml(item.explanation)}
+        </div>` : ''}
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
