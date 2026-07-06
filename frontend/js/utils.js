@@ -1,6 +1,9 @@
 /* utils.js — shared helpers for all pages */
 
-const API = "http://localhost:5000/api";
+const API =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000/api"
+    : "/api";
 
 /* ---------- HTTP helpers ---------- */
 async function apiFetch(path, options = {}) {
@@ -86,11 +89,12 @@ function renderNavUser() {
   } else {
     slot.innerHTML = `
       <a href="login.html">Login</a>
-      <a href="register.html" class="btn-nav">Sign Up</a>
+     <a href="login.html#register" class="btn-nav">Sign Up</a>
+      
     `;
   }
 }
-
+// <a href="register.html" class="btn-nav">Sign Up</a>
 async function logout() {
   try { await apiFetch("/logout", { method: "POST" }); } catch {}
   clearUser();
